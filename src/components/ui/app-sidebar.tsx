@@ -47,10 +47,10 @@ export function AppSidebar() {
           <SidebarGroupLabel>
             <Image src="/icon-notia.png" alt="icon" width={100} height={70} />
           </SidebarGroupLabel>
-          <SidebarGroupContent>
+          <SidebarGroupContent className="mt-2">
             <SidebarMenu>
               {items.map((item) => (
-                <SidebarMenuItem key={item.title}>
+                <SidebarMenuItem key={item.title} className="mt-2">
                   <SidebarMenuButton asChild>
                     <a href={item.url}>
                       <item.icon />

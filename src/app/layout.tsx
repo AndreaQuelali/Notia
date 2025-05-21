@@ -40,10 +40,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                       </Link>
                     </SignedOut>
                     <SignedIn>
-                      <Link href="/dashboard" className="text-sm font-medium hover:underline">
-                        Dashboard
-                      </Link>
-                      <UserButton afterSignOutUrl="/" />
+                      <UserButton />
                     </SignedIn>
                     <ModeToggle />
                   </header>
