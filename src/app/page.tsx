@@ -1,41 +1,46 @@
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { redirect } from 'next/navigation';
+import { auth } from '@clerk/nextjs/server';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 
-import Image from "next/image";
+export default async function Home() {
+  const { userId } = await auth();
 
-export default function Home() {
+  if (userId) {
+    redirect('/dashboard');
+  }
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <div className="flex space-x-1">
-          <h3>Good morning, </h3>
-          <h3 className="bg-gradient-to-r from-primary2 to-secondary2 bg-clip-text text-transparent">
-            nickname!
-          </h3>
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6">
+      <div className="w-full max-w-md space-y-8 text-center">
+        <div className="space-y-2">
+          <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-primary2 to-secondary2 bg-clip-text text-transparent">
+            Welcome to Notia
+          </h1>
+          <p className="text-muted-foreground">
+            Your intelligent note-taking application
+          </p>
         </div>
-        <Card className=" shadow-lg rounded-xl p-4 w-48">
-          <CardHeader className="flex flex-col items-start">
-            {" "}
-            <Image
-              src="/icono.png"
-              alt="icono"
-              width={32}
-              height={32}
-              className="mb-2 w-48"
-            />
-            <CardTitle className="text-xl font-bold">Card Title</CardTitle>
-            <CardDescription className="text-sm">
-              Card Description
-            </CardDescription>
-          </CardHeader>
-        </Card>
-      </main>
+
+        <div className="flex flex-col space-y-4">
+          <Button asChild size="lg" className="w-full">
+            <Link href="/sign-up">Create an account</Link>
+          </Button>
+          <div className="relative py-4">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">
+                Or continue with
+              </span>
+            </div>
+          </div>
+          <Button variant="outline" asChild>
+            <Link href="/sign-in">Sign in</Link>
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }
