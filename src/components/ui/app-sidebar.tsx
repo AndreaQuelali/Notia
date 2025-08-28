@@ -44,7 +44,7 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>
+          <SidebarGroupLabel className="my-5" >
             <Image src="/icon-notia.png" alt="icon" width={100} height={70} />
           </SidebarGroupLabel>
           <SidebarGroupContent>
