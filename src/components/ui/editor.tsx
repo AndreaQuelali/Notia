@@ -1,16 +1,36 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Toggle } from "@/components/ui/toggle";
-import { Bold, Italic, Underline, Smile, Cpu } from "lucide-react";
+import { Bold, Italic, Underline, Smile, Cpu, ListTodo } from "lucide-react";
 import EmojiPicker from "emoji-picker-react";
 import ChatBot from "./chatbot";
+import { usePages } from "@/context/pages";
+
 export default function RichTextEditor() {
+  const { currentPage, updatePageContent } = usePages();
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [openChat, setOpenChat] = useState(false);
+  const editorRef = useRef<HTMLDivElement>(null);
 
   const handleCommand = (command: string, value?: string) => {
     document.execCommand(command, false, value);
+  };
+
+  const insertTodoItem = () => {
+    const html = `<div class="flex items-center gap-2"><input type="checkbox" class="h-4 w-4" /><span>To-do</span></div>`;
+    handleCommand("insertHTML", html);
+  };
+
+  // Load current page content into the editor
+  useEffect(() => {
+    if (!editorRef.current) return;
+    editorRef.current.innerHTML = currentPage?.content || "";
+  }, [currentPage?.id]);
+
+  const handleInput = (e: React.FormEvent<HTMLDivElement>) => {
+    const html = e.currentTarget.innerHTML;
+    updatePageContent(currentPage.id, html);
   };
 
   return (
@@ -26,6 +46,9 @@ export default function RichTextEditor() {
         <Toggle onClick={() => handleCommand("underline")} aria-label="Underline">
           <Underline className="w-4 h-4" />
         </Toggle>
+        <Toggle onClick={insertTodoItem} aria-label="Checklist">
+          <ListTodo className="w-4 h-4" />
+        </Toggle>
         <Toggle onClick={() => setShowEmojiPicker(!showEmojiPicker)} aria-label="Emoji">
           <Smile className="w-4 h-4" />
         </Toggle>
@@ -37,9 +60,11 @@ export default function RichTextEditor() {
 
       {/* Editor */}
       <div
+        ref={editorRef}
         contentEditable
         className="min-h-[200px] p-4 text-lg focus:outline-none"
         suppressContentEditableWarning
+        onInput={handleInput}
       />
 
       {/* Emoji Picker */}
