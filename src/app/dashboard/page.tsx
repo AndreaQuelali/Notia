@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/ui/app-sidebar";
+import RichTextEditor from "@/components/ui/editor";
+import PageHeader from "@/components/ui/header";
 
 export default async function DashboardPage() {
   const { userId } = await auth();
@@ -16,18 +18,12 @@ export default async function DashboardPage() {
       <div className="flex h-screen w-[95vw]">
         <AppSidebar />
         <div className="flex flex-col flex-1 min-w-0">
-          <header className="flex justify-between items-center p-4 border-b border-gray-800">
-            <h1 className="text-2xl font-bold m-0">Notia</h1>
-            <UserButton afterSignOutUrl="/" />
-          </header>
-          <div className="flex flex-1">
-            <main className="flex-1 p-8 flex flex-col items-center">
-              <textarea
-                placeholder="Escribe tu idea...."
-                className="w-full max-w-2xl min-h-[200px] text-lg p-4 border border-gray-700 rounded-lg resize-y bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </main>
-          </div>
+          <div className="flex flex-col items-center p-8">
+      <PageHeader />
+      <div className="mt-6 w-full max-w-3xl">
+        <RichTextEditor />
+      </div>
+    </div>
         </div>
       </div>
     </SidebarProvider>
