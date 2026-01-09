@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Smile } from "lucide-react";
 import EmojiPicker from "emoji-picker-react";
@@ -10,10 +10,13 @@ import { usePages } from "@/context/pages";
 export default function PageHeader() {
   const { currentPage, updatePageTitle, updatePageIcon } = usePages();
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [title, setTitle] = useState("");
+  const titleRef = useRef<HTMLDivElement>(null);
 
+  // Load title only when page changes; do not control as React children to avoid caret jump.
   useEffect(() => {
-    setTitle(currentPage?.title || "");
+    if (titleRef.current) {
+      titleRef.current.innerText = currentPage?.title || "";
+    }
   }, [currentPage?.id]);
 
   return (
@@ -58,18 +61,16 @@ export default function PageHeader() {
 
         {/* Editable title */}
         <div
+          ref={titleRef}
           contentEditable
           suppressContentEditableWarning
           onInput={(e) => {
             const t = e.currentTarget.textContent || "";
-            setTitle(t);
             updatePageTitle(currentPage.id, t);
           }}
           className="text-4xl font-bold focus:outline-none flex-1"
           data-placeholder="New page"
-        >
-          {title}
-        </div>
+        />
       </div>
 
       {/* Placeholder style */}

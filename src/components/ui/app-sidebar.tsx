@@ -13,7 +13,6 @@ import {
   SidebarMenuItem,
   SidebarTrigger,
   SidebarRail,
-  SidebarGroupAction,
 } from "@/components/ui/sidebar";
 import { usePages } from "@/context/pages";
 
@@ -52,13 +51,16 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarRail />
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel className="my-5">
+        {/* Header row with brand and persistent trigger */}
+        <div className="flex items-center justify-between p-2">
+          <div className="my-3 transition-all duration-200 group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:opacity-0 overflow-hidden">
             <Image src="/icon-notia.png" alt="icon" width={100} height={70} />
-          </SidebarGroupLabel>
-          <SidebarGroupAction>
-            <SidebarTrigger />
-          </SidebarGroupAction>
+          </div>
+          <SidebarTrigger className="shrink-0" />
+        </div>
+
+        <SidebarGroup>
+          <SidebarGroupLabel className="sr-only">Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => (
