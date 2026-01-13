@@ -23,6 +23,10 @@ import {
   Minus,
   FileText,
   ChevronDown,
+  Image as ImageIcon,
+  Link as LinkIcon,
+  Music2,
+  Video,
 } from "lucide-react";
 
 export type BlockType =
@@ -38,7 +42,14 @@ export type BlockType =
   | "callout"
   | "quote"
   | "table"
-  | "divider";
+  | "divider"
+  | "image"
+  | "icon"
+  | "music"
+  | "link"
+  | "video"
+  | "table-row"
+  | "table-col";
 
 export default function BlockMenu({
   open,
@@ -69,6 +80,13 @@ export default function BlockMenu({
     { key: "quote", label: "Quote", icon: Quote },
     { key: "table", label: "Table", icon: TableIcon },
     { key: "divider", label: "Divider", icon: Minus },
+    { key: "image", label: "Image", icon: ImageIcon },
+    { key: "icon", label: "Icon", icon: Plus },
+    { key: "music", label: "Music", icon: Music2 },
+    { key: "link", label: "Link", icon: LinkIcon },
+    { key: "video", label: "Video", icon: Video },
+    { key: "table-row", label: "Add row", icon: Plus },
+    { key: "table-col", label: "Add column", icon: Plus },
   ];
 
   const filtered = items.filter((i) => i.label.toLowerCase().includes(filter.toLowerCase()));
