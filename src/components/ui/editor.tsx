@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { usePages } from "@/context/pages";
 import BlockMenu, { BlockType } from "@/components/ui/block-menu";
+import EmojiPicker from "emoji-picker-react";
+import TableTools from "@/components/ui/table-tools";
 
 export default function RichTextEditor() {
   const { currentPage, updatePageContent, createPage, setCurrentPageId } = usePages();
@@ -10,6 +12,9 @@ export default function RichTextEditor() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [plusTop, setPlusTop] = useState(12);
   const [focused, setFocused] = useState(false);
+  const [inTable, setInTable] = useState(false);
+  const [iconPickerOpen, setIconPickerOpen] = useState(false);
+  const lastRangeRef = useRef<Range | null>(null);
 
   const handleCommand = (command: string, value?: string) => {
     document.execCommand(command, false, value);
@@ -22,6 +27,11 @@ export default function RichTextEditor() {
 
   const insertAndBreak = (html: string) => {
     handleCommand("insertHTML", html + `<p><br></p>`);
+  };
+
+  const persistEditorContent = () => {
+    if (!editorRef.current) return;
+    updatePageContent(currentPage.id, editorRef.current.innerHTML);
   };
 
   const pickLocalFile = (accept: string): Promise<string | undefined> =>
@@ -49,11 +59,13 @@ export default function RichTextEditor() {
   };
 
   const addTableRow = () => {
+    restoreSelection();
+    editorRef.current?.focus();
     const sel = window.getSelection();
-    if (!sel || sel.rangeCount === 0) return insertBlock("table");
+    if (!sel || sel.rangeCount === 0) return;
     const range = sel.getRangeAt(0);
     const table = getAncestor(range.startContainer, "TABLE") as HTMLTableElement | null;
-    if (!table) return insertBlock("table");
+    if (!table) return;
     const tbody = table.tBodies[0] || table.createTBody();
     const rows = tbody.rows;
     const cols = rows[0]?.cells.length || 1;
@@ -65,14 +77,18 @@ export default function RichTextEditor() {
       tr.appendChild(td);
     }
     tbody.appendChild(tr);
+    updatePlusPosition();
+    persistEditorContent();
   };
 
   const addTableColumn = () => {
+    restoreSelection();
+    editorRef.current?.focus();
     const sel = window.getSelection();
-    if (!sel || sel.rangeCount === 0) return insertBlock("table");
+    if (!sel || sel.rangeCount === 0) return;
     const range = sel.getRangeAt(0);
     const table = getAncestor(range.startContainer, "TABLE") as HTMLTableElement | null;
-    if (!table) return insertBlock("table");
+    if (!table) return;
     const rows = table.tBodies[0]?.rows || table.rows;
     Array.from(rows).forEach((row) => {
       const td = document.createElement("td");
@@ -80,6 +96,71 @@ export default function RichTextEditor() {
       td.innerHTML = "&nbsp;";
       row.appendChild(td);
     });
+    updatePlusPosition();
+    persistEditorContent();
+  };
+
+  const saveSelection = () => {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return;
+    lastRangeRef.current = sel.getRangeAt(0).cloneRange();
+  };
+
+  const restoreSelection = () => {
+    const range = lastRangeRef.current;
+    if (!range) return;
+    const sel = window.getSelection();
+    if (!sel) return;
+    sel.removeAllRanges();
+    sel.addRange(range);
+  };
+
+  const deleteTableRow = () => {
+    restoreSelection();
+    editorRef.current?.focus();
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return;
+    const range = sel.getRangeAt(0);
+    const tr = getAncestor(range.startContainer, "TR");
+    tr?.parentElement?.removeChild(tr);
+    updatePlusPosition();
+    persistEditorContent();
+  };
+
+  const deleteTableColumn = () => {
+    restoreSelection();
+    editorRef.current?.focus();
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return;
+    const range = sel.getRangeAt(0);
+    const td = getAncestor(range.startContainer, "TD") as HTMLTableCellElement | null;
+    if (!td) return;
+    const table = getAncestor(td, "TABLE") as HTMLTableElement | null;
+    if (!table) return;
+    const cellIndex = td.cellIndex;
+    const rows = table.tBodies[0]?.rows || table.rows;
+    Array.from(rows).forEach((row) => row.cells[cellIndex]?.remove());
+    updatePlusPosition();
+    persistEditorContent();
+  };
+
+  const mergeCells = () => {
+    restoreSelection();
+    editorRef.current?.focus();
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return;
+    const range = sel.getRangeAt(0);
+    const td = getAncestor(range.startContainer, "TD") as HTMLTableCellElement | null;
+    if (!td) return;
+    const next = td.nextElementSibling as HTMLTableCellElement | null;
+    const prev = td.previousElementSibling as HTMLTableCellElement | null;
+    const target = next || prev;
+    if (!target) return;
+    td.colSpan = (td.colSpan || 1) + ((target.colSpan as number) || 1);
+    td.innerHTML = `${td.innerHTML} ${target.innerHTML}`;
+    target.remove();
+    updatePlusPosition();
+    persistEditorContent();
   };
 
   const placeCaretAtEnd = (el: HTMLElement) => {
@@ -95,7 +176,18 @@ export default function RichTextEditor() {
   const insertBlock = async (type: BlockType) => {
     if (!editorRef.current) return;
     editorRef.current.focus();
-    placeCaretAtEnd(editorRef.current);
+    const preserveSelection =
+      type === "table-row" ||
+      type === "table-col" ||
+      type === "delete-row" ||
+      type === "delete-col" ||
+      type === "merge-cells";
+    if (!preserveSelection) {
+      placeCaretAtEnd(editorRef.current);
+    } else {
+      // Restore the selection inside the table before executing actions
+      restoreSelection();
+    }
     switch (type) {
       case "text":
         insertAndBreak(`<p>Text</p>`);
@@ -159,8 +251,7 @@ export default function RichTextEditor() {
         break;
       }
       case "icon": {
-        const emoji = window.prompt("Pega un emoji (icono)", "⭐");
-        if (emoji) insertAndBreak(`<span class='text-3xl'>${emoji}</span>`);
+        setIconPickerOpen(true);
         break;
       }
       case "music": {
@@ -189,6 +280,15 @@ export default function RichTextEditor() {
       case "table-col":
         addTableColumn();
         break;
+      case "delete-row":
+        deleteTableRow();
+        break;
+      case "delete-col":
+        deleteTableColumn();
+        break;
+      case "merge-cells":
+        mergeCells();
+        break;
     }
     setMenuOpen(false);
   };
@@ -212,10 +312,14 @@ export default function RichTextEditor() {
     const sel = window.getSelection();
     if (!sel || sel.rangeCount === 0) return;
     const range = sel.getRangeAt(0).cloneRange();
+    // Save latest range so we can restore it when selecting menu items
+    lastRangeRef.current = range.cloneRange();
     const rect = range.getBoundingClientRect();
     const editorRect = editorRef.current.getBoundingClientRect();
     const top = Math.max(12, rect.top - editorRect.top + 0);
     setPlusTop(top);
+    const table = getAncestor(range.startContainer, "TABLE");
+    setInTable(!!table);
   };
 
   // Delegate link clicks to navigate to pages
@@ -236,13 +340,25 @@ export default function RichTextEditor() {
   }, [setCurrentPageId]);
 
   return (
-    <div className="w-full max-w-2xl border border-gray-700 rounded-lg bg-background relative">
-      <BlockMenu
-        open={menuOpen}
-        onOpenChange={setMenuOpen}
+    <div className="w-full max-w-2xl rounded-lg bg-background relative flex items-center">
+      <div className="px-4">
+        <BlockMenu
+          open={menuOpen}
+          onOpenChange={setMenuOpen}
+          top={plusTop}
+          visible={focused || menuOpen}
+          inTable={inTable}
+          onSelect={(t) => insertBlock(t)}
+        />
+      </div>
+      <TableTools
         top={plusTop}
-        visible={focused || menuOpen}
-        onSelect={(t) => insertBlock(t)}
+        visible={inTable && (focused || menuOpen)}
+        onAddRow={addTableRow}
+        onAddCol={addTableColumn}
+        onDeleteRow={deleteTableRow}
+        onDeleteCol={deleteTableColumn}
+        onMergeCells={mergeCells}
       />
       {/* Editor */}
       <div
@@ -271,9 +387,21 @@ export default function RichTextEditor() {
           }
         }}
         onKeyUp={updatePlusPosition}
+        onMouseDown={updatePlusPosition}
         onMouseUp={updatePlusPosition}
         data-placeholder="Write '/' for commands..."
       />
+
+      {iconPickerOpen && (
+        <div className="absolute z-50" style={{ top: plusTop + 10, left: 48 }}>
+          <EmojiPicker
+            onEmojiClick={(emojiData) => {
+              insertAndBreak(`<span class='text-3xl'>${emojiData.emoji}</span>`);
+              setIconPickerOpen(false);
+            }}
+          />
+        </div>
+      )}
 
       {/* Placeholder style for contentEditable */}
       <style jsx>{`

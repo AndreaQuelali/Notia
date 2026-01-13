@@ -27,6 +27,8 @@ import {
   Link as LinkIcon,
   Music2,
   Video,
+  Trash2,
+  SquareStack,
 } from "lucide-react";
 
 export type BlockType =
@@ -49,7 +51,10 @@ export type BlockType =
   | "link"
   | "video"
   | "table-row"
-  | "table-col";
+  | "table-col"
+  | "delete-row"
+  | "delete-col"
+  | "merge-cells";
 
 export default function BlockMenu({
   open,
@@ -57,12 +62,14 @@ export default function BlockMenu({
   top,
   visible,
   onSelect,
+  inTable = false,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   top: number;
   visible: boolean;
   onSelect: (type: BlockType) => void;
+  inTable?: boolean;
 }) {
   const [filter, setFilter] = useState("");
 
@@ -87,9 +94,24 @@ export default function BlockMenu({
     { key: "video", label: "Video", icon: Video },
     { key: "table-row", label: "Add row", icon: Plus },
     { key: "table-col", label: "Add column", icon: Plus },
+    { key: "delete-row", label: "Delete row", icon: Trash2 },
+    { key: "delete-col", label: "Delete column", icon: Trash2 },
+    { key: "merge-cells", label: "Merge cells", icon: SquareStack },
   ];
 
-  const filtered = items.filter((i) => i.label.toLowerCase().includes(filter.toLowerCase()));
+  const filtered = items
+    .filter((i) => i.label.toLowerCase().includes(filter.toLowerCase()))
+    .filter((i) =>
+      inTable
+        ? true
+        : ![
+            "table-row",
+            "table-col",
+            "delete-row",
+            "delete-col",
+            "merge-cells",
+          ].includes(i.key)
+    );
 
   return (
     <DropdownMenu open={open} onOpenChange={onOpenChange}>
@@ -113,7 +135,6 @@ export default function BlockMenu({
           />
         </div>
         <DropdownMenuSeparator />
-        <DropdownMenuLabel>Basic blocks</DropdownMenuLabel>
         {filtered.map((i) => (
           <DropdownMenuItem key={i.key} onSelect={() => onSelect(i.key)}>
             <i.icon className="w-4 h-4" />
