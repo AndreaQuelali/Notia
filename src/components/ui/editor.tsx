@@ -17,7 +17,69 @@ export default function RichTextEditor() {
 
   const insertTodoItem = () => {
     const html = `<div class="flex items-center gap-2"><input type="checkbox" class="h-4 w-4" /><span>To-do</span></div>`;
-    handleCommand("insertHTML", html);
+    handleCommand("insertHTML", html + `<p><br></p>`);
+  };
+
+  const insertAndBreak = (html: string) => {
+    handleCommand("insertHTML", html + `<p><br></p>`);
+  };
+
+  const pickLocalFile = (accept: string): Promise<string | undefined> =>
+    new Promise((resolve) => {
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = accept;
+      input.onchange = () => {
+        const file = input.files?.[0];
+        if (!file) return resolve(undefined);
+        const url = URL.createObjectURL(file);
+        resolve(url);
+      };
+      input.click();
+    });
+
+  const getAncestor = (node: Node | null, tag: string): HTMLElement | null => {
+    let el: Node | null = node instanceof HTMLElement ? node : node?.parentElement || null;
+    const upper = tag.toUpperCase();
+    while (el) {
+      if ((el as HTMLElement).tagName === upper) return el as HTMLElement;
+      el = (el as HTMLElement).parentElement;
+    }
+    return null;
+  };
+
+  const addTableRow = () => {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return insertBlock("table");
+    const range = sel.getRangeAt(0);
+    const table = getAncestor(range.startContainer, "TABLE") as HTMLTableElement | null;
+    if (!table) return insertBlock("table");
+    const tbody = table.tBodies[0] || table.createTBody();
+    const rows = tbody.rows;
+    const cols = rows[0]?.cells.length || 1;
+    const tr = document.createElement("tr");
+    for (let i = 0; i < cols; i++) {
+      const td = document.createElement("td");
+      td.className = "border p-2";
+      td.innerHTML = "&nbsp;";
+      tr.appendChild(td);
+    }
+    tbody.appendChild(tr);
+  };
+
+  const addTableColumn = () => {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return insertBlock("table");
+    const range = sel.getRangeAt(0);
+    const table = getAncestor(range.startContainer, "TABLE") as HTMLTableElement | null;
+    if (!table) return insertBlock("table");
+    const rows = table.tBodies[0]?.rows || table.rows;
+    Array.from(rows).forEach((row) => {
+      const td = document.createElement("td");
+      td.className = "border p-2";
+      td.innerHTML = "&nbsp;";
+      row.appendChild(td);
+    });
   };
 
   const placeCaretAtEnd = (el: HTMLElement) => {
@@ -30,71 +92,102 @@ export default function RichTextEditor() {
     sel.addRange(range);
   };
 
-  const insertBlock = (type: BlockType) => {
+  const insertBlock = async (type: BlockType) => {
     if (!editorRef.current) return;
     editorRef.current.focus();
     placeCaretAtEnd(editorRef.current);
     switch (type) {
       case "text":
-        handleCommand("insertHTML", `<p>Text</p>`);
+        insertAndBreak(`<p>Text</p>`);
         break;
       case "h1":
-        handleCommand("insertHTML", `<h1 class='text-3xl font-bold my-2'>Heading 1</h1>`);
+        insertAndBreak(`<h1 class='text-3xl font-bold my-2'>Heading 1</h1>`);
         break;
       case "h2":
-        handleCommand("insertHTML", `<h2 class='text-2xl font-semibold my-2'>Heading 2</h2>`);
+        insertAndBreak(`<h2 class='text-2xl font-semibold my-2'>Heading 2</h2>`);
         break;
       case "h3":
-        handleCommand("insertHTML", `<h3 class='text-xl font-semibold my-2'>Heading 3</h3>`);
+        insertAndBreak(`<h3 class='text-xl font-semibold my-2'>Heading 3</h3>`);
         break;
       case "bulleted":
-        handleCommand("insertHTML", `<ul class='list-disc pl-6 my-2'><li>List item</li></ul>`);
+        insertAndBreak(`<ul class='list-disc pl-6 my-2'><li>List item</li></ul>`);
         break;
       case "numbered":
-        handleCommand("insertHTML", `<ol class='list-decimal pl-6 my-2'><li>List item</li></ol>`);
+        insertAndBreak(`<ol class='list-decimal pl-6 my-2'><li>List item</li></ol>`);
         break;
       case "todo":
         insertTodoItem();
         break;
       case "toggle":
-        handleCommand(
-          "insertHTML",
+        insertAndBreak(
           `<details class='my-2'><summary class='cursor-pointer select-none'>Toggle list</summary><ul class='list-disc pl-6 my-2'><li>Item</li></ul></details>`
         );
         break;
       case "page": {
         const newPage = createPage();
-        // Insert a simple link-like reference
-        handleCommand(
-          "insertHTML",
-          `<div class='my-2'><a href='#' data-page-id='${newPage.id}' class='inline-flex items-center gap-2 px-2 py-1 rounded-md hover:bg-muted'><span>📄</span><span>${newPage.title}</span></a></div>`
+        // Insert a link that, when clicked, cambia a esa página
+        insertAndBreak(
+          `<div class='my-2'><a href='#page-${newPage.id}' data-page-id='${newPage.id}' class='inline-flex items-center gap-2 px-2 py-1 rounded-md hover:bg-muted'><span>📄</span><span>${newPage.title}</span></a></div>`
         );
-        setCurrentPageId(newPage.id);
         break;
       }
       case "callout":
-        handleCommand(
-          "insertHTML",
+        insertAndBreak(
           `<div class='my-2 flex items-start gap-2 rounded-md border p-3 bg-muted'><span>💡</span><div>Callout</div></div>`
         );
         break;
       case "quote":
-        handleCommand(
-          "insertHTML",
+        insertAndBreak(
           `<blockquote class='border-l pl-4 italic my-2'>Quote</blockquote>`
         );
         break;
       case "table":
-        handleCommand(
-          "insertHTML",
+        insertAndBreak(
           `<table class='my-3 w-full border-collapse'><tbody>
-            <tr><td class='border p-2'>A1</td><td class='border p-2'>B1</td><td class='border p-2'>C1</td></tr>
-            <tr><td class='border p-2'>A2</td><td class='border p-2'>B2</td><td class='border p-2'>C2</td></tr>
+            <tr><td class='border p-2'>&nbsp;</td><td class='border p-2'>&nbsp;</td><td class='border p-2'>&nbsp;</td></tr>
+            <tr><td class='border p-2'>&nbsp;</td><td class='border p-2'>&nbsp;</td><td class='border p-2'>&nbsp;</td></tr>
           </tbody></table>`
         );
         break;
       case "divider":
-        handleCommand("insertHTML", `<hr class='my-4 border-gray-700' />`);
+        insertAndBreak(`<hr class='my-4 border-gray-700' />`);
+        break;
+      case "image": {
+        const url = await pickLocalFile("image/*");
+        const src = url ?? window.prompt("Pega la URL de la imagen");
+        if (src) insertAndBreak(`<img src='${src}' class='max-w-full rounded-md my-2' />`);
+        break;
+      }
+      case "icon": {
+        const emoji = window.prompt("Pega un emoji (icono)", "⭐");
+        if (emoji) insertAndBreak(`<span class='text-3xl'>${emoji}</span>`);
+        break;
+      }
+      case "music": {
+        const url = await pickLocalFile("audio/*");
+        const src = url ?? window.prompt("Pega la URL del audio");
+        if (src) insertAndBreak(`<audio controls class='my-2'><source src='${src}' /></audio>`);
+        break;
+      }
+      case "link": {
+        const href = window.prompt("URL del enlace", "https://");
+        if (href) {
+          const text = window.prompt("Texto a mostrar", href) || href;
+          insertAndBreak(`<a href='${href}' target='_blank' rel='noopener' class='underline text-blue-500'>${text}</a>`);
+        }
+        break;
+      }
+      case "video": {
+        const url = await pickLocalFile("video/*");
+        const src = url ?? window.prompt("Pega la URL del video");
+        if (src) insertAndBreak(`<video controls class='w-full max-w-xl rounded-md my-2'><source src='${src}' /></video>`);
+        break;
+      }
+      case "table-row":
+        addTableRow();
+        break;
+      case "table-col":
+        addTableColumn();
         break;
     }
     setMenuOpen(false);
@@ -125,10 +218,25 @@ export default function RichTextEditor() {
     setPlusTop(top);
   };
 
+  // Delegate link clicks to navigate to pages
+  useEffect(() => {
+    const el = editorRef.current;
+    if (!el) return;
+    const handler = (e: MouseEvent) => {
+      const t = e.target as HTMLElement;
+      const a = t.closest("a[data-page-id]") as HTMLAnchorElement | null;
+      if (a) {
+        e.preventDefault();
+        const id = a.getAttribute("data-page-id");
+        if (id) setCurrentPageId(id);
+      }
+    };
+    el.addEventListener("click", handler);
+    return () => el.removeEventListener("click", handler);
+  }, [setCurrentPageId]);
+
   return (
-    <div className="w-full max-w-2xl bg-background relative flex items-center">
-      {/* Options */}
-      <div className="px-4">
+    <div className="w-full max-w-2xl border border-gray-700 rounded-lg bg-background relative">
       <BlockMenu
         open={menuOpen}
         onOpenChange={setMenuOpen}
@@ -136,7 +244,6 @@ export default function RichTextEditor() {
         visible={focused || menuOpen}
         onSelect={(t) => insertBlock(t)}
       />
-      </div>
       {/* Editor */}
       <div
         ref={editorRef}
