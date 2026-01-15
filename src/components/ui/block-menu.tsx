@@ -117,7 +117,7 @@ export default function BlockMenu({
     <DropdownMenu open={open} onOpenChange={onOpenChange}>
       <DropdownMenuTrigger asChild>
         <button
-          className={`absolute left-2 size-7 rounded-md hover:bg-muted text-muted-foreground flex items-center justify-center border border-transparent z-10 ${visible ? "" : "invisible"}`}
+          className={`absolute left-2 size-7 rounded-md hover:bg-muted text-muted-foreground flex items-center justify-center border border-transparent z-10 cursor-pointer ${visible ? "" : "invisible"}`}
           aria-label="Add block"
           type="button"
           style={{ top }}
@@ -136,7 +136,7 @@ export default function BlockMenu({
         </div>
         <DropdownMenuSeparator />
         {filtered.map((i) => (
-          <DropdownMenuItem key={i.key} onSelect={() => onSelect(i.key)}>
+          <DropdownMenuItem key={i.key} onSelect={() => onSelect(i.key)} className="cursor-pointer">
             <i.icon className="w-4 h-4" />
             <span>{i.label}</span>
           </DropdownMenuItem>
