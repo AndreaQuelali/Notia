@@ -340,7 +340,7 @@ export default function RichTextEditor() {
   }, [setCurrentPageId]);
 
   return (
-    <div className="w-full max-w-2xl rounded-lg bg-background relative flex items-center">
+    <div spellCheck={true} lang="en" className="w-full max-w-2xl rounded-lg bg-background relative flex items-center">
       <div className="px-4">
         <BlockMenu
           open={menuOpen}
