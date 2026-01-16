@@ -5,6 +5,7 @@ import { usePages } from "@/context/pages";
 import BlockMenu, { BlockType } from "@/components/ui/block-menu";
 import EmojiPicker from "emoji-picker-react";
 import TableTools from "@/components/ui/table-tools";
+import Autocomplete from "@/components/ui/autocomplete";
 
 export default function RichTextEditor() {
   const { currentPage, updatePageContent, createPage, setCurrentPageId } = usePages();
@@ -185,7 +186,6 @@ export default function RichTextEditor() {
     if (!preserveSelection) {
       placeCaretAtEnd(editorRef.current);
     } else {
-      // Restore the selection inside the table before executing actions
       restoreSelection();
     }
     switch (type) {
@@ -217,7 +217,6 @@ export default function RichTextEditor() {
         break;
       case "page": {
         const newPage = createPage();
-        // Insert a link that, when clicked, cambia a esa página
         insertAndBreak(
           `<div class='my-2'><a href='#page-${newPage.id}' data-page-id='${newPage.id}' class='inline-flex items-center gap-2 px-2 py-1 rounded-md hover:bg-muted'><span>📄</span><span>${newPage.title}</span></a></div>`
         );
@@ -293,11 +292,9 @@ export default function RichTextEditor() {
     setMenuOpen(false);
   };
 
-  // Load current page content into the editor
   useEffect(() => {
     if (!editorRef.current) return;
     editorRef.current.innerHTML = currentPage?.content || "";
-    // Reset plus position on page change
     setTimeout(updatePlusPosition, 0);
   }, [currentPage?.id]);
 
@@ -312,7 +309,6 @@ export default function RichTextEditor() {
     const sel = window.getSelection();
     if (!sel || sel.rangeCount === 0) return;
     const range = sel.getRangeAt(0).cloneRange();
-    // Save latest range so we can restore it when selecting menu items
     lastRangeRef.current = range.cloneRange();
     const rect = range.getBoundingClientRect();
     const editorRect = editorRef.current.getBoundingClientRect();
@@ -322,7 +318,6 @@ export default function RichTextEditor() {
     setInTable(!!table);
   };
 
-  // Delegate link clicks to navigate to pages
   useEffect(() => {
     const el = editorRef.current;
     if (!el) return;
@@ -390,6 +385,14 @@ export default function RichTextEditor() {
         onMouseDown={updatePlusPosition}
         onMouseUp={updatePlusPosition}
         data-placeholder="Write '/' for commands..."
+      />
+
+      <Autocomplete
+        editorRef={editorRef}
+        onAccept={(html) => {
+          updatePageContent(currentPage.id, html);
+          updatePlusPosition();
+        }}
       />
 
       {iconPickerOpen && (
