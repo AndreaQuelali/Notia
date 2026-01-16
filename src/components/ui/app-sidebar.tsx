@@ -273,10 +273,10 @@ export function AppSidebar() {
       <SidebarContent>
         {/* Header row with brand and persistent trigger */}
         <div className="flex items-center justify-between p-2">
-          <div className="my-3 transition-all duration-200 group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:opacity-0 overflow-hidden">
-            <Image src="/icon-notia.png" alt="icon" width={100} height={70} />
+          <div className="my-3 transition-all duration-200 group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:opacity-0 overflow-hidden ml-3">
+            <Image src="/logo_notia.png" alt="icon" width={100} height={70} />
           </div>
-          <SidebarTrigger className="shrink-0" />
+          <SidebarTrigger className="shrink-0 cursor-pointer" />
         </div>
 
         <SidebarGroup>
