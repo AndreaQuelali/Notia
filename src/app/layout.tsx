@@ -12,13 +12,13 @@ import Link from 'next/link';
 
 export const metadata = {
   title: "Notia",
-  description: "Aplicación web de notas con IA",
+  description: "App web of notes with AI",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <ClerkProvider>
-      <html lang="es" suppressHydrationWarning>
+      <html lang="en" suppressHydrationWarning>
         <head />
         <body className="min-h-screen bg-background text-foreground antialiased">
           <ThemeProvider
