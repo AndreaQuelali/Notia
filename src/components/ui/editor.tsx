@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type DragEvent } from "react";
 import { usePages } from "@/context/pages";
 import BlockMenu, { BlockType } from "@/components/ui/block-menu";
 import EmojiPicker from "emoji-picker-react";
@@ -15,6 +15,8 @@ export default function RichTextEditor() {
   const [focused, setFocused] = useState(false);
   const [inTable, setInTable] = useState(false);
   const [iconPickerOpen, setIconPickerOpen] = useState(false);
+  const [textColorPickerOpen, setTextColorPickerOpen] = useState(false);
+  const draggedBlockRef = useRef<HTMLElement | null>(null);
   const lastRangeRef = useRef<Range | null>(null);
 
   const handleCommand = (command: string, value?: string) => {
@@ -57,6 +59,93 @@ export default function RichTextEditor() {
       el = (el as HTMLElement).parentElement;
     }
     return null;
+  };
+
+  const getEditorBlockAncestor = (node: Node | null): HTMLElement | null => {
+    const root = editorRef.current;
+    if (!root) return null;
+    let el: HTMLElement | null = node instanceof HTMLElement ? node : node?.parentElement || null;
+    while (el && el !== root) {
+      const tag = el.tagName.toUpperCase();
+      if (
+        [
+          "P",
+          "H1",
+          "H2",
+          "H3",
+          "UL",
+          "OL",
+          "BLOCKQUOTE",
+          "TABLE",
+          "DETAILS",
+          "HR",
+          "IMG",
+          "DIV",
+          "AUDIO",
+          "VIDEO",
+          "A",
+        ].includes(tag)
+      ) {
+        return el;
+      }
+      el = el.parentElement;
+    }
+    return null;
+  };
+
+  const getSelectionBlock = (): HTMLElement | null => {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return null;
+    return getEditorBlockAncestor(sel.anchorNode);
+  };
+
+  const handleDragStart = (e: DragEvent<HTMLButtonElement>) => {
+    const block = getSelectionBlock();
+    if (!block || !editorRef.current) return;
+    draggedBlockRef.current = block;
+    try {
+      e.dataTransfer.setData("text/plain", block.outerHTML);
+    } catch {
+      // ignore
+    }
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
+    if (!draggedBlockRef.current) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+  };
+
+  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
+    const root = editorRef.current;
+    const dragged = draggedBlockRef.current;
+    if (!root || !dragged) return;
+    e.preventDefault();
+
+    const elAtPoint = document.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null;
+    const target = elAtPoint ? getEditorBlockAncestor(elAtPoint) : null;
+
+    if (target && target !== dragged && root.contains(target)) {
+      const targetRect = target.getBoundingClientRect();
+      const insertAfter = e.clientY > targetRect.top + targetRect.height / 2;
+      const refNode = insertAfter ? target.nextSibling : target;
+      root.insertBefore(dragged, refNode);
+    } else {
+      root.appendChild(dragged);
+    }
+
+    draggedBlockRef.current = null;
+    updatePlusPosition();
+    persistEditorContent();
+  };
+
+  const applyTextColor = (color: string) => {
+    restoreSelection();
+    editorRef.current?.focus();
+    document.execCommand("styleWithCSS", false, "true");
+    document.execCommand("foreColor", false, color);
+    persistEditorContent();
   };
 
   const addTableRow = () => {
@@ -182,7 +271,8 @@ export default function RichTextEditor() {
       type === "table-col" ||
       type === "delete-row" ||
       type === "delete-col" ||
-      type === "merge-cells";
+      type === "merge-cells" ||
+      type === "text-color";
     if (!preserveSelection) {
       placeCaretAtEnd(editorRef.current);
     } else {
@@ -201,6 +291,10 @@ export default function RichTextEditor() {
       case "h3":
         insertAndBreak(`<h3 class='text-xl font-semibold my-2'>Heading 3</h3>`);
         break;
+      case "text-color": {
+        setTextColorPickerOpen(true);
+        break;
+      }
       case "bulleted":
         insertAndBreak(`<ul class='list-disc pl-6 my-2'><li>List item</li></ul>`);
         break;
@@ -346,6 +440,19 @@ export default function RichTextEditor() {
           onSelect={(t) => insertBlock(t)}
         />
       </div>
+      <button
+        className={`absolute left-10 size-7 rounded-md hover:bg-muted text-muted-foreground flex items-center justify-center border border-transparent z-10 cursor-grab active:cursor-grabbing ${
+          focused || menuOpen ? "" : "invisible"
+        }`}
+        aria-label="Move block"
+        type="button"
+        style={{ top: plusTop }}
+        draggable
+        onDragStart={handleDragStart}
+        onMouseDown={saveSelection}
+      >
+        ⋮⋮
+      </button>
       <TableTools
         top={plusTop}
         visible={inTable && (focused || menuOpen)}
@@ -362,6 +469,8 @@ export default function RichTextEditor() {
         className="min-h-[200px] p-4 text-lg focus:outline-none"
         suppressContentEditableWarning
         onInput={handleInput}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
         onFocus={() => {
           setFocused(true);
           updatePlusPosition();
@@ -379,6 +488,7 @@ export default function RichTextEditor() {
           }
           if (e.key === "Escape") {
             setMenuOpen(false);
+            setTextColorPickerOpen(false);
           }
         }}
         onKeyUp={updatePlusPosition}
@@ -406,7 +516,20 @@ export default function RichTextEditor() {
         </div>
       )}
 
-      {/* Placeholder style for contentEditable */}
+      {textColorPickerOpen && (
+        <div className="absolute z-50" style={{ top: plusTop + 10, left: 48 }}>
+          <input
+            type="color"
+            onChange={(e) => {
+              applyTextColor(e.target.value);
+              setTextColorPickerOpen(false);
+              setMenuOpen(false);
+            }}
+            onBlur={() => setTextColorPickerOpen(false)}
+          />
+        </div>
+      )}
+
       <style jsx>{`
         [data-placeholder]:empty:before {
           content: attr(data-placeholder);

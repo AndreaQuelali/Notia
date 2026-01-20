@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ElementType } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,6 +36,7 @@ export type BlockType =
   | "h1"
   | "h2"
   | "h3"
+  | "text-color"
   | "bulleted"
   | "numbered"
   | "todo"
@@ -73,11 +74,12 @@ export default function BlockMenu({
 }) {
   const [filter, setFilter] = useState("");
 
-  const items: { key: BlockType; label: string; icon: React.ElementType }[] = [
+  const items: { key: BlockType; label: string; icon: ElementType }[] = [
     { key: "text", label: "Text", icon: Type },
     { key: "h1", label: "Heading 1", icon: Heading1 },
     { key: "h2", label: "Heading 2", icon: Heading2 },
     { key: "h3", label: "Heading 3", icon: Heading3 },
+    { key: "text-color", label: "Text color", icon: Type },
     { key: "bulleted", label: "Bulleted list", icon: List },
     { key: "numbered", label: "Numbered list", icon: ListOrdered },
     { key: "todo", label: "To-do", icon: ListTodo },
