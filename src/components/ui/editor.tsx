@@ -104,7 +104,7 @@ export default function RichTextEditor() {
     if (!block || !editorRef.current) return;
     draggedBlockRef.current = block;
     try {
-      e.dataTransfer.setData("text/plain", block.outerHTML);
+      e.dataTransfer.setData("text/plain", "\u200B");
     } catch {
       // ignore
     }
@@ -114,7 +114,14 @@ export default function RichTextEditor() {
   const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
     if (!draggedBlockRef.current) return;
     e.preventDefault();
+    e.stopPropagation();
     e.dataTransfer.dropEffect = "move";
+  };
+
+  const handleDragEnter = (e: DragEvent<HTMLDivElement>) => {
+    if (!draggedBlockRef.current) return;
+    e.preventDefault();
+    e.stopPropagation();
   };
 
   const handleDrop = (e: DragEvent<HTMLDivElement>) => {
@@ -122,6 +129,7 @@ export default function RichTextEditor() {
     const dragged = draggedBlockRef.current;
     if (!root || !dragged) return;
     e.preventDefault();
+    e.stopPropagation();
 
     const elAtPoint = document.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null;
     const target = elAtPoint ? getEditorBlockAncestor(elAtPoint) : null;
@@ -441,7 +449,7 @@ export default function RichTextEditor() {
         />
       </div>
       <button
-        className={`absolute left-10 size-7 rounded-md hover:bg-muted text-muted-foreground flex items-center justify-center border border-transparent z-10 cursor-grab active:cursor-grabbing ${
+        className={`absolute left-10 size-7 rounded-md hover:bg-muted bg-background/80 text-muted-foreground flex items-center justify-center border border-transparent z-50 cursor-grab active:cursor-grabbing ${
           focused || menuOpen ? "" : "invisible"
         }`}
         aria-label="Move block"
@@ -466,9 +474,10 @@ export default function RichTextEditor() {
       <div
         ref={editorRef}
         contentEditable
-        className="min-h-[200px] p-4 text-lg focus:outline-none"
+        className="min-h-[200px] p-4 pl-14 text-lg focus:outline-none"
         suppressContentEditableWarning
         onInput={handleInput}
+        onDragEnter={handleDragEnter}
         onDragOver={handleDragOver}
         onDrop={handleDrop}
         onFocus={() => {
@@ -476,7 +485,6 @@ export default function RichTextEditor() {
           updatePlusPosition();
         }}
         onBlur={() => {
-          // Defer to allow trigger to open the menu before hiding the plus
           setTimeout(() => {
             if (!menuOpen) setFocused(false);
           }, 0);
