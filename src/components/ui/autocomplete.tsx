@@ -11,9 +11,9 @@ export default function Autocomplete({ editorRef, onAccept }: Props) {
   const [suggestion, setSuggestion] = useState("");
   const [visible, setVisible] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [pos, setPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
+  const [, setPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
   const abortRef = useRef<AbortController | null>(null);
-  const debounceRef = useRef<NodeJS.Timeout>();
+  const debounceRef = useRef<number | undefined>(undefined);
 
   const fetchSuggestion = useCallback(async (text: string) => {
     if (!text.trim()) {
@@ -42,8 +42,8 @@ export default function Autocomplete({ editorRef, onAccept }: Props) {
         setVisible(false);
       }
     } catch (e) {
-      
-      if ((e as any).name !== "AbortError") {
+      const err = e as { name?: string };
+      if (err.name !== "AbortError") {
         console.error("Autocomplete error:", e);
         setSuggestion("");
         setVisible(false);
@@ -73,8 +73,8 @@ export default function Autocomplete({ editorRef, onAccept }: Props) {
     const textContent = endNode.textContent?.slice(0, endOffset) ?? "";
     
     if (textContent.length > 0) {
-      clearTimeout(debounceRef.current);
-      debounceRef.current = setTimeout(() => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = window.setTimeout(() => {
         fetchSuggestion(textContent);
       }, 600);
     } else {
@@ -130,7 +130,7 @@ export default function Autocomplete({ editorRef, onAccept }: Props) {
 
   useEffect(() => {
     return () => {
-      clearTimeout(debounceRef.current);
+      if (debounceRef.current) clearTimeout(debounceRef.current);
       abortRef.current?.abort();
     };
   }, []);

@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { openai } from "@/lib/openia";
+import { getOpenAI } from "@/lib/openia";
 export async function POST(req: NextRequest) {
   try {
     const { message } = await req.json();
 
     if (!message) {
       return NextResponse.json({ error: "Message is required" }, { status: 400 });
+    }
+
+    const openai = getOpenAI();
+    if (!openai) {
+      return NextResponse.json({ error: "OPENAI_API_KEY missing" }, { status: 500 });
     }
 
     const response = await openai.chat.completions.create({
