@@ -44,7 +44,7 @@ export function PagesProvider({ children }: { children: React.ReactNode }) {
     try {
       const raw = typeof window !== "undefined" ? localStorage.getItem(STORAGE_KEY) : null;
       if (raw) {
-        const parsed = JSON.parse(raw) as { pages: any[]; currentPageId?: string };
+        const parsed = JSON.parse(raw) as { pages: Partial<Page>[]; currentPageId?: string };
         if (Array.isArray(parsed.pages) && parsed.pages.length > 0) {
           const migrated = parsed.pages.map((p) => ({
             id: p.id,
